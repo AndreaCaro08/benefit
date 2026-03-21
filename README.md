@@ -85,4 +85,8 @@ Supports multiple languages to ensure accessibility for users from different reg
 
 ```bash
 npm install
+<<<<<<< HEAD
 npm run dev
+=======
+npm run dev
+>>>>>>> 8dc96c28f65c5f291affd0bef1d4ae5bebb6b3d7
