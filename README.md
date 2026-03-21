@@ -1,73 +1,88 @@
-# Welcome to your Lovable project
+# 🌉 Benefit Bridge
 
-## Project info
+**Benefit Bridge** is an AI-powered platform that helps citizens easily access and apply for government welfare schemes.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+It simplifies the process of finding eligible schemes, verifying documents, and guiding users through applications using intelligent automation.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🚀 Key Features
 
-**Use Lovable**
+### 🌍 Multilingual Support
+Supports multiple languages to ensure accessibility for users from different regions.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+### 🤖 AI Chatbot Assistance
+- Guides users step-by-step  
+- Answers queries about schemes  
+- Helps in application process  
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 📄 Smart Document Verification
+- AI-based document validation  
+- Reduces manual errors  
+- Ensures correct submissions  
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+### 🔗 DigiLocker Integration
+- Secure document access  
+- No need for repeated uploads  
+- Fast verification  
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### ✅ Eligibility Checker
+- Automatically checks user eligibility  
+- Suggests best matching schemes  
+- Based on uploaded documents  
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 🔊 Text-to-Speech (Voice Support)
+- Converts on-screen text into audio  
+- Helps visually impaired and illiterate users  
+- Improves accessibility and usability  
+
+---
+
+### 📊 Application Tracking System
+- Track status of submitted applications  
+- Real-time updates on approval/rejection  
+- Improves transparency for users  
+
+---
+
+## 🛠️ Tech Stack
+
+- Frontend: React + Vite  
+- Styling: Tailwind CSS  
+- Backend: Supabase  
+- AI: Chatbot + Document Analysis  
+## 📸 Screenshots
+
+### 🏠 Home Page
+![Home](./screenshots/home.png)
+
+### 🔐 Login Page
+![Login](./screenshots/login.png)
+
+### 🌍 Language Selection
+![Language](./screenshots/language.png)
+
+### 📄 Scheme Listing
+![Schemes](./screenshots/scheme.png)
+
+### 📊 Application Tracking
+![Application](./screenshots/application.png)
+
+### 💼 My Wallet (Documents / DigiLocker)
+![Wallet](./screenshots/mywallet.png)
+
+## ▶️ Run Locally
+
+```bash
+npm install
 npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
