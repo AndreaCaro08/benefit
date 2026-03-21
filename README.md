@@ -64,22 +64,22 @@ Supports multiple languages to ensure accessibility for users from different reg
 ## 📸 Screenshots
 
 ### 🏠 Home Page
-![Home](./screenshots/home.png)
+![Home](./images/home.png)
 
 ### 🔐 Login Page
-![Login](./screenshots/login.png)
+![Login](./images/login.png)
 
 ### 🌍 Language Selection
-![Language](./screenshots/language.png)
+![Language](./images/language.png)
 
 ### 📄 Scheme Listing
-![Schemes](./screenshots/scheme.png)
+![Schemes](./images/scheme.png)
 
 ### 📊 Application Tracking
-![Application](./screenshots/application.png)
+![Application](./images/application.png)
 
 ### 💼 My Wallet (Documents / DigiLocker)
-![Wallet](./screenshots/mywallet.png)
+![Wallet](./images/mywallet.png)
 
 ## ▶️ Run Locally
 
