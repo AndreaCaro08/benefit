@@ -1,6 +1,5 @@
+
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Chatbot from '@/components/Chatbot';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,52 +7,54 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, User, Globe, Shield, LogOut } from 'lucide-react';
+import { Settings, User, Globe, Shield, MapPin, Wallet, HeartPulse } from 'lucide-react';
 import { toast } from 'sonner';
 import { languages } from '@/lib/languages';
 import { useLanguage } from '@/lib/useLanguage';
+import { getProfile, type UserProfile } from '@/lib/mockData';
+import { loadProfile, persistProfile } from '@/lib/dataService';
 
 const ProfilePage = () => {
-  const navigate = useNavigate();
   const { language, setLanguage } = useLanguage();
-  const [profile, setProfile] = useState<any>(null);
-  const [fullName, setFullName] = useState('');
+  const [profile, setProfile] = useState<UserProfile>(() => getProfile());
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate('/auth'); return; }
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (data) {
-        setProfile(data);
-        setFullName(data.full_name || '');
-      }
-    };
-    fetch();
-  }, [navigate]);
+    let active = true;
+    loadProfile()
+      .then((currentProfile) => { if (active) setProfile(currentProfile); })
+      .catch((error) => toast.error(error instanceof Error ? error.message : 'Unable to load your profile.'))
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const updateProfile = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) => {
+    setProfile((current) => ({ ...current, [key]: value }));
+  };
 
   const handleSave = async () => {
-    if (!profile) return;
+    const updatedProfile = {
+      ...profile,
+      preferred_language: language || 'en',
+    };
+
     setSaving(true);
-    const { error } = await supabase.from('profiles').update({
-      full_name: fullName,
-      preferred_language: language,
-    }).eq('id', profile.id);
-    if (error) toast.error(error.message);
-    else toast.success('Profile updated!');
-    setSaving(false);
+    try {
+      await persistProfile(updatedProfile);
+      setProfile(updatedProfile);
+      toast.success('Profile updated!');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unable to save profile';
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleLanguageChange = (code: string) => {
     setLanguage(code);
     localStorage.setItem('bb_lang', code);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success('Logged out');
-    navigate('/');
   };
 
   return (
@@ -80,11 +81,86 @@ const ProfilePage = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="text-sm">Full Name</Label>
-              <Input value={fullName} onChange={e => setFullName(e.target.value)} className="rounded-xl h-11" />
+              <Input value={profile.full_name} onChange={(event) => updateProfile('full_name', event.target.value)} className="rounded-xl h-11" required />
             </div>
             <div className="space-y-2">
-              <Label className="text-sm">Email</Label>
-              <Input value={profile?.email || ''} disabled className="rounded-xl h-11 bg-muted" />
+              <Label className="text-sm">Phone number</Label>
+              <Input type="tel" autoComplete="tel" value={profile.phone} onChange={(event) => updateProfile('phone', event.target.value)} className="rounded-xl h-11" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              <CardTitle className="text-base font-display">Household and Location</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Input id="state" value={profile.state} onChange={(event) => updateProfile('state', event.target.value)} className="rounded-xl h-11" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="district">District</Label>
+              <Input id="district" value={profile.district} onChange={(event) => updateProfile('district', event.target.value)} className="rounded-xl h-11" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="age">Age</Label>
+              <Input id="age" type="number" min="0" max="120" value={profile.age || ''} onChange={(event) => updateProfile('age', Number(event.target.value))} className="rounded-xl h-11" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="annual-income">Annual household income (₹)</Label>
+              <Input id="annual-income" type="number" min="0" value={profile.annual_income || ''} onChange={(event) => updateProfile('annual_income', Number(event.target.value))} className="rounded-xl h-11" />
+            </div>
+            <div className="space-y-2">
+              <Label>Household group</Label>
+              <Select value={profile.household_type} onValueChange={(value) => updateProfile('household_type', value as UserProfile['household_type'])}>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="Not provided" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unknown">Not provided</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="family">Family</SelectItem>
+                  <SelectItem value="farmer">Farmer</SelectItem>
+                  <SelectItem value="senior">Senior citizen</SelectItem>
+                  <SelectItem value="working">Working</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Gender</Label>
+              <Select value={profile.gender} onValueChange={(value) => updateProfile('gender', value as UserProfile['gender'])}>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="Not provided" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unknown">Prefer not to say / not provided</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2 flex items-center justify-between rounded-xl bg-muted/50 p-4">
+              <div className="flex items-center gap-3">
+                <HeartPulse className="w-4 h-4 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Person with disability in household</p>
+                  <p className="text-xs text-muted-foreground">Used only when a verified scheme rule applies.</p>
+                </div>
+              </div>
+              <Select
+                value={profile.has_disability === null ? 'unknown' : String(profile.has_disability)}
+                onValueChange={(value) => updateProfile('has_disability', value === 'unknown' ? null : value === 'true')}
+              >
+                <SelectTrigger aria-label="Person with disability in household" className="w-40 rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unknown">Not provided</SelectItem>
+                  <SelectItem value="true">Yes</SelectItem>
+                  <SelectItem value="false">No</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -102,9 +178,9 @@ const ProfilePage = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {languages.map(l => (
-                  <SelectItem key={l.code} value={l.code}>
-                    {l.nativeName} ({l.name})
+                {languages.map((entry) => (
+                  <SelectItem key={entry.code} value={entry.code}>
+                    {entry.nativeName} ({entry.name})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -112,19 +188,15 @@ const ProfilePage = () => {
           </CardContent>
         </Card>
 
-        <Button className="w-full h-11 rounded-xl font-semibold" onClick={handleSave} disabled={saving}>
+        <Button className="w-full h-11 rounded-xl font-semibold" onClick={handleSave} disabled={saving || loading || !profile.full_name.trim()}>
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
           <Shield className="w-3.5 h-3.5" />
-          <span>Your data is encrypted and secure</span>
+          <Wallet className="w-3.5 h-3.5" />
+          <span>Your profile is saved in this browser.</span>
         </div>
-
-        <Button variant="outline" className="w-full rounded-xl text-destructive hover:bg-destructive/10" onClick={handleLogout}>
-          <LogOut className="w-4 h-4 mr-2" />
-          Sign Out
-        </Button>
       </main>
       <Chatbot />
     </div>

@@ -10,7 +10,7 @@ const LanguageSelect = () => {
   const handleSelect = (code: string) => {
     setLanguage(code);
     localStorage.setItem('bb_lang', code);
-    navigate('/auth');
+    navigate('/home');
   };
 
   return (
@@ -27,7 +27,7 @@ const LanguageSelect = () => {
               <Globe className="w-10 h-10 text-primary-foreground" />
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-primary-foreground mb-4 tracking-tight font-display">
-              Benefit Bridge
+              Serve Sahayak
             </h1>
             <div className="flex items-center justify-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-secondary" />

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import SchemeCard from '@/components/SchemeCard';
@@ -7,57 +7,49 @@ import Chatbot from '@/components/Chatbot';
 import { Badge } from '@/components/ui/badge';
 import { Search, FileText, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-
-interface Scheme {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  benefits: string;
-  icon: string;
-  required_documents: string[];
-  eligibility_criteria: any;
-}
+import { evaluateSchemeMatch, getProfile, type Scheme, type UserProfile } from '@/lib/mockData';
+import { loadProfile, loadSchemes, loadWallet } from '@/lib/dataService';
+import { toast } from 'sonner';
 
 const ExploreSchemesPage = () => {
   const navigate = useNavigate();
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [walletDocs, setWalletDocs] = useState<string[]>([]);
+  const [profile, setProfile] = useState<UserProfile>(() => getProfile());
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
+  const [catalogNotice, setCatalogNotice] = useState<string | null>(null);
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate('/auth'); return; }
-      const [schemesRes, docsRes] = await Promise.all([
-        supabase.from('schemes').select('*'),
-        supabase.from('wallet_documents').select('document_type').eq('user_id', user.id),
-      ]);
-      if (schemesRes.data) setSchemes(schemesRes.data as Scheme[]);
-      if (docsRes.data) setWalletDocs(docsRes.data.map(d => d.document_type));
-    };
-    fetchData();
-  }, [navigate]);
+    Promise.all([loadSchemes(), loadWallet(), loadProfile()])
+      .then(([catalog, documents, nextProfile]) => {
+        setSchemes(catalog.schemes);
+        setCatalogNotice(catalog.notice);
+        setWalletDocs(documents.map((doc) => doc.document_type));
+        setProfile(nextProfile);
+      })
+      .catch((error) => toast.error(error instanceof Error ? error.message : 'Unable to load your scheme data.'))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const calcEligibility = (scheme: Scheme) => {
-    const required = scheme.required_documents;
-    if (required.length === 0) return 100;
-    const matched = required.filter(d => walletDocs.includes(d)).length;
-    return Math.round((matched / required.length) * 100);
-  };
+  const categories = useMemo(() => [...new Set(schemes.map((scheme) => scheme.category))], [schemes]);
 
-  const getMissingDocs = (scheme: Scheme) => {
-    return scheme.required_documents.filter(d => !walletDocs.includes(d));
-  };
-
-  const categories = [...new Set(schemes.map(s => s.category))];
-
-  const filtered = schemes.filter(s => {
-    const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.description.toLowerCase().includes(search.toLowerCase());
-    const matchCat = !selectedCategory || s.category === selectedCategory;
-    return matchSearch && matchCat;
-  });
+  const filtered = useMemo(() => {
+    return schemes
+      .filter((scheme) => {
+        const matchSearch =
+          scheme.name.toLowerCase().includes(search.toLowerCase()) ||
+          scheme.description.toLowerCase().includes(search.toLowerCase()) ||
+          scheme.benefits.toLowerCase().includes(search.toLowerCase());
+        const matchCategory = !selectedCategory || scheme.category === selectedCategory;
+        return matchSearch && matchCategory;
+      })
+      .sort((a, b) => {
+        const scoreA = evaluateSchemeMatch(a, profile, walletDocs).documentEligibilityScore ?? -1;
+        const scoreB = evaluateSchemeMatch(b, profile, walletDocs).documentEligibilityScore ?? -1;
+        return scoreB - scoreA;
+      });
+  }, [schemes, search, selectedCategory, walletDocs, profile]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,19 +62,28 @@ const ExploreSchemesPage = () => {
           <div>
             <h1 className="text-2xl font-bold font-display">Explore Schemes</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Discover {schemes.length} government welfare schemes
+              {schemes.length} scheme records • {schemes.filter((scheme) => scheme.is_published && scheme.verification_status === 'published' && scheme.last_verified_at).length} verified and published
             </p>
           </div>
         </div>
 
-        {/* Search & Filter */}
+        {catalogNotice && (
+          <div role="status" className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+            {catalogNotice}
+          </div>
+        )}
+
+        <div role="note" className="rounded-xl border bg-card px-4 py-3 text-sm text-muted-foreground">
+          Draft schemes may show document-match estimates using example documents. These documents and percentages are not verified government requirements or approval predictions. Add documents in your wallet to try the estimate.
+        </div>
+
         <div className="space-y-3">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search schemes by name or description..."
+              placeholder="Search schemes by name or benefit..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
               className="pl-11 h-11 rounded-xl border-0 bg-card shadow-card"
             />
           </div>
@@ -94,35 +95,35 @@ const ExploreSchemesPage = () => {
             >
               All
             </Badge>
-            {categories.map(cat => (
+            {categories.map((category) => (
               <Badge
-                key={cat}
-                variant={selectedCategory === cat ? 'default' : 'outline'}
+                key={category}
+                variant={selectedCategory === category ? 'default' : 'outline'}
                 className="cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all"
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => setSelectedCategory(category)}
               >
-                {cat}
+                {category}
               </Badge>
             ))}
           </div>
         </div>
 
-        {/* Schemes Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((scheme, i) => (
-            <div key={scheme.id} className="animate-fade-in-scale" style={{ animationDelay: `${i * 50}ms` }}>
+        {loading ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">Loading scheme records…</div>
+        ) : <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map((scheme, index) => (
+            <div key={scheme.id} className="animate-fade-in-scale" style={{ animationDelay: `${index * 50}ms` }}>
               <SchemeCard
                 scheme={scheme}
-                eligibility={calcEligibility(scheme)}
-                missingDocs={getMissingDocs(scheme)}
-                onApply={id => navigate(`/apply/${id}`)}
-                onViewDetails={id => navigate(`/scheme/${id}`)}
+                match={evaluateSchemeMatch(scheme, profile, walletDocs)}
+                onViewDetails={(id) => navigate(`/scheme/${id}`)}
+                onAddDocuments={() => navigate('/wallet')}
               />
             </div>
           ))}
-        </div>
+        </div>}
 
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="text-center py-20 text-muted-foreground">
             <FileText className="w-14 h-14 mx-auto mb-4 opacity-30" />
             <p className="font-medium">No schemes found.</p>
